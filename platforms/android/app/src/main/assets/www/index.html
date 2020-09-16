@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, user-scalable=no,
+    shrink-to-fit=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+  <link rel="stylesheet" href="mystyle.css">
+
+  <style>
+    @import 'ui/css/evothings-app.css';
+    @import 'app.css';
+	</style>
+
+	<title>ESP8266</title>
+
+	<script>
+		// Redirect console.log to Evothings Workbench.
+		if (window.hyper && window.hyper.log) { console.log = hyper.log }
+	</script>
+
+	<script src="libs/jquery/jquery.js"></script>
+</head>
+
+<body ontouchstart="" > 
+
+	<header> 
+
+<!--		<button class="back" onclick="history.back()">
+			<img src="ui/images/arrow-left.svg" />
+    </button>
+    
+-->
+    <button type="button" class="btn btn-default btn-sm" id="Refresh_button">
+    <span class="glyphicon glyphicon-refresh"></span> Refresh
+    </button>
+   
+ </header>
+
+<!--	<h1>Wireless Controls</h1> -->
+    <div id="ConnectView">
+      <button type="button" id="clientConnectButton" onclick="CONNECT()" class="buttonc button1">Connect</button>
+      <hr>
+      <p>Connection Status:<small id="Status_Property">Not Connected</small></p>
+      <hr>
+    </div>
+    
+    <div id="Connection_Properties">
+  <!--      <span> <h2>Connection Properties</h2> </span> -->
+ 
+        <div >
+            <label class="pro_label">Host-Address: <span>  <input  type="text" id="hostInput" value="io.adafruit.com" class="pro_input"> 
+            </span></label>
+            
+        </div>
+        <div>
+            <label class="pro_label">Port: <span><input type="text"  id="portInput" value="443" class="pro_input"></span></label>
+            
+        </div>
+        <div>
+            <label class="pro_label" >Client ID: <span> <input type="text" id="clientIdInput" value="test" class="pro_input"></span></label>
+            
+        </div>
+        <div >
+            <label class="pro_label">Username: <span> <input type="text"  id="userInput" value="sri8352" class="pro_input"> </span></label>
+            
+        </div>
+        <div >
+            <label class="pro_label">Unique Key: <span ><input type="text"  id="passInput" value="aio_uThs68F7phVYFewXHb2TcRiTJ3y2" class="pro_input"></span></label>
+            
+        </div>
+        <div >
+            <label class="pro_label">Keepalive: <span><input type="text" id="keepAliveInput" value="10" class="pro_input"></span></label>
+            
+        </div>
+        <div >
+             <label class="pro_label">Timeout: <span><input type="text" id="timeoutInput" value="3" class="pro_input"></span></label>
+             
+         </div>
+        <div>
+             <label class="pro_label">TLS: <span><input type="checkbox"  id="tlsInput" value="" checked="" ></span></label>
+             
+        </div>
+        <div >
+          <label class="pro_label">Clean Session:<span><input type="checkbox"  id="cleanSessionInput" value="" checked=""></span></label>
+        </div>
+        <div >
+             <label class="pro_label">Automatic Reconnect:<span><input type="checkbox" id="automaticReconnectInput" value="" checked=""></span></label>
+             
+        </div>
+
+     <hr>
+     <div >
+        <div >
+            <label  class="lastwill_input">Last Will Topic:</label>
+            <input  type="text"  id="lwtInput" value="sri8352/feeds/srikanth.offline">
+        </div>
+        <div>
+            <label class="lastwill_input">QoS:</label>
+            <select  id="lwQosInput">
+                  <option>0</option>
+                  <option>1</option>
+                  <option>2</option>
+            </select>
+        </div>
+        <div>
+            <label class="lastwill_input">Last Will Message:</label>
+            <textarea  id="lwMInput" rows="2" >Going offline.. Bye Bye...</textarea>
+        </div>
+     </div>
+
+     <hr>
+    </div>
+
+  
+<div id="Before_connect_control">
+
+    <div class="row">
+      <div class="column left" >
+      <h2>FAN:</h2>
+      </div>
+      <div class="column right" >
+        <input type="checkbox" id="switchfan" class="checkbox" value="false"/> 
+        <label for="switchfan" class="toggle"> 
+        <p class="ptext">OFF<<>>ON</p> 
+        </label> 
+      </div>
+    </div>
+    <div class="row">
+      <div class="column left" >
+      <h2>Light:</h2>
+      </div>
+      <div class="column right" >
+        <input type="checkbox" id="switchled" class="checkbox" value="false"/> 
+        <label for="switchled" class="toggle"> 
+          <p class="ptext">OFF<<>>ON</p> 
+        </label> 
+      </div>
+    </div>
+    <div class="row">
+      <div class="column left" >
+      <h2>Night Lamp:</h2>
+      </div>
+      <div class="column right" >
+        <input type="checkbox" id="switchnightled" class="checkbox" value="false"/> 
+        <label for="switchnightled" class="toggle"> 
+        <p class="ptext">OFF<<>>ON</p> 
+        </label> 
+       </div>
+    </div>
+    <div class="row">
+      <div class="column left" >
+      <h2>TV:</h2>
+      </div>
+      <div class="column right" >
+        <input type="checkbox" id="switchtv" class="checkbox" /> 
+        <label for="switchtv" class="toggle"> 
+        <p class="ptext">OFF<<>>ON</p> 
+        </label> 
+        </div>
+    </div>
+    <br>
+    <hr>
+  </div> 
+<p id="test1"></p>
+<p id="test2"></p>
+<p id="test3"></p>
+
+<button id="Setting_button" class="Settings" onclick="configuration_mqtt()">Settings</button>
+
+  <!-- Source Paho MQTT Client-->
+  <script src="paho-mqtt.js"></script>
+ 
+  <!-- Utility Javascript -->
+  <script src="utility.js"></script>
+    
+</body>
+</html>
