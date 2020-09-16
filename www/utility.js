@@ -8,13 +8,17 @@
 var client = null;
 var connected = false;
 var MCU_state = 0;
+var Initial_State = false;
+
+
 /////When document loaded completely it executes
 $(document).ready(function() {
 
   $('#Connection_Properties').hide();
-  $('#Before_connect_control').hide();
-
+  $('#Control_View').hide();
+////////// Data which is stored in the local we are retrieving        ////////////////
   var storage = window.localStorage;
+
   document.getElementById('hostInput').value=storage.getItem('hostInput');
   document.getElementById('portInput').value=storage.getItem('portInput');
   document.getElementById('clientIdInput').value=storage.getItem('clientIdInput');
@@ -23,23 +27,27 @@ $(document).ready(function() {
   document.getElementById('keepAliveInput').value=storage.getItem('keepAliveInput');
   document.getElementById('timeoutInput').value=storage.getItem('timeoutInput');
 //**************     Checck box values */
-  if(storage.getItem('tlsInput').localeCompare("true")  == 0){
-    $( "#tlsInput").prop('checked', true);
+
+
+
+if(storage.getItem('tlsInput').localeCompare("true")  == 0){
+    $("#tlsInput").prop('checked', true);
   }
   if(storage.getItem('tlsInput').localeCompare("false")  == 0){
-    $('#tlsInput').removeAttr('checked');
+    $("#tlsInput").removeAttr('checked');
   }
+  
   if(storage.getItem('cleanSessionInput').localeCompare("true")  == 0){
-    $( "#cleanSessionInput").prop('checked', true);
+    $("#cleanSessionInput").prop('checked', true);
   }
   if(storage.getItem('cleanSessionInput').localeCompare("false")  == 0){
-    $('#cleanSessionInput').removeAttr('checked');
+    $("#cleanSessionInput").removeAttr('checked');
   }
   if(storage.getItem('automaticReconnectInput').localeCompare("true")  == 0){
-    $( "#automaticReconnectInput").prop('checked', true);
+    $("#automaticReconnectInput").prop('checked', true);
   }
   if(storage.getItem('automaticReconnectInput').localeCompare("false")  == 0){
-    $('#automaticReconnectInput').removeAttr('checked');
+    $("#automaticReconnectInput").removeAttr('checked');
   }
 
   document.getElementById('lwtInput').value=storage.getItem('lwtInput');
@@ -48,14 +56,8 @@ $(document).ready(function() {
 })
 
 
-$("#Refresh_button").click(function(){
-//  var storage = window.localStorage;
-  typeof(operand)
-//  str1.localeCompare(str2)
 
-//  $('#test1').html(typeof(storage.getItem('tlsInput'))))
-//  $('#test2').html(typeof(storage.getItem('cleanSessionInput')))
- // $('#test3').html(typeof(storage.getItem('automaticReconnectInput')))
+$("#Refresh_button").click(function(){
 
  if(connected == false)
   {
@@ -65,13 +67,9 @@ $("#Refresh_button").click(function(){
   MCU_state = MCU_state + 1;
   if(MCU_state > 2){
     alert("Controlling Device is not Connected to the Internet. \nPlease Connect it and try again!");
-//    $('#Before_connect_control *').hide();
   }
   publish_Own("?Are you connected?");
   publish_Own("?Send me the status of all pins?");
-//  alert("In refresh function");
-  //$('#Before_connect_control *').show();
- 
 });
 
 /////Send mesage when click on switch for LED
@@ -147,14 +145,12 @@ function configuration_mqtt(){
 
   if (x.style.display === "none") {
     $('#ConnectView').hide();
-    $('#Publish_Message').hide();
     $('#Setting_button').html(" Save");
 
     x.style.display = "block";
   } else {
     x.style.display = "none";
     $('#ConnectView').show();
-    $('#Publish_Message').show();
     $('#Setting_button').html(" Settings");
     storage.setItem('hostInput', document.getElementById('hostInput').value);
     storage.setItem('portInput', document.getElementById('portInput').value);
@@ -187,9 +183,10 @@ function configuration_mqtt(){
     storage.setItem('lwQosInput', document.getElementById('lwQosInput').value);
     storage.setItem('lwMInput', document.getElementById('lwMInput').value);
   }
-  if(connected)
-  disconnect();
 //  alert("Config");
+//  if(connected)
+//     disconnect();
+
 }
 //////////////////////////////////////////////////////////////
 // called when the client connects
@@ -197,24 +194,19 @@ function onConnect(context) {
   // Once a connection has been made, make a subscription and send a message.
   connected = true;
 //  alert("Successfully Connected to Broker");
-  $('#clientConnectButton').html("Disconnect")
-  $('#Status_Property').html(" Connected")
-//Place the code to read the data from the MCU
-//Sending the query to enquire about the device connection if connected then only the Buttons will appear
+  $('#clientConnectButton').html("Disconnect");
+  $('#Status_Property').html(" Connected");
 
   document.getElementById("clientConnectButton").className = "buttonc button2";
   subscribe();
   publish_Own("?Are you connected?");
   publish_Own("?Send me the status of all pins?");
-
-
 }
 
 //////////////////////////////////////////////////////////////
 function onConnected(reconnect, uri) {
   // Once a connection has been made, make a subscription and send a message.
   connected = true;
- // $('#clientConnectButton').hide();
 
 }
 /////////////////////////////////////////////////////////////
@@ -234,15 +226,14 @@ function publish_Own(mess) {
 //////////////////////////////////////////////////////////////
 function onFail(context) {
   connected = false;
-  alert("Failed to connect, Please connect again");
+  $('#Status_Property').html(" Not Connected");
+//  alert("Failed to connect,Check Connection SETTINGS and Connect again!.\n ERROR: ".concat(context.errorMessage));
 }
 
 // called when the client loses its connection
 function onConnectionLost(responseObject) {
-/*  if (responseObject.errorCode !== 0) {
-    logMessage("INFO", "Connection Lost. [Error Message: ", responseObject.errorMessage, "]");
-  }*/
   connected = false;
+//  alert("Connection Lost with error: ",responseObject.errorMessage);
   document.getElementById("clientConnectButton").className = "buttonc button1";
   $('#Status_Property').html(" Not Connected");
 
@@ -250,7 +241,6 @@ function onConnectionLost(responseObject) {
 
 // called when a message arrives
 function onMessageArrived(message) {
- // logMessage("INFO", "Message Recieved: [Topic: ", message.destinationName, ", Payload: ", message.payloadString, ", QoS: ", message.qos, ", Retained: ", message.retained, ", Duplicate: ", message.duplicate, "]");
  // var messageTime = new Date().toISOString();
  /////////If device is connected it sends the request to send pins status////////////// 
   if(message.payloadString.match("Yes, Iam") ){
@@ -318,8 +308,8 @@ function onMessageArrived(message) {
     }
 
     ///Buttons to show
-    $('#Before_connect_control').show();
-//    $('#Before_connect_control *').show();
+    $('#Control_View').show();
+//    $('#Control_View *').show();
 
 
   }//Refresh pins if end
@@ -345,9 +335,9 @@ function connect() {
   var timeout = Number(document.getElementById("timeoutInput").value);
 
   var tls = document.getElementById("tlsInput").checked;
+//  var tls = $('#tlsInput').val();
   var automaticReconnect = document.getElementById("automaticReconnectInput").checked;
-
-//  var cleanSession = document.getElementById("cleanSessionInput").checked;
+  var cleanSession = document.getElementById("cleanSessionInput").checked;
   var lastWillTopic = document.getElementById("lwtInput").value;
   var lastWillQos = Number(document.getElementById("lwQosInput").value);
 //  var lastWillRetain = document.getElementById("lwRetainInput").checked;
@@ -368,7 +358,7 @@ function connect() {
     invocationContext: { host: hostname, port: port, path: client.path, clientId: clientId },
     timeout: timeout,
     keepAliveInterval: keepAlive,
-  //  cleanSession: cleanSession,
+    cleanSession: cleanSession,
     useSSL: tls,
     reconnect: automaticReconnect,
     onSuccess: onConnect,
@@ -387,19 +377,19 @@ function connect() {
     var lastWillMessage = new Paho.Message(lastWillMessageVal);
     lastWillMessage.destinationName = lastWillTopic;
     lastWillMessage.qos = lastWillQos;
-  //  lastWillMessage.retained = lastWillRetain;
+//    lastWillMessage.retained = lastWillRetain;
     options.willMessage = lastWillMessage;
   }
- 
+//  alert("Called connect"); 
   // connect the client
   client.connect(options);
-//  alert("Called connect");
+  $('#Status_Property').html(" Connecting...");
 }
 
 function disconnect() {
 //  alert("Disconnect");
   client.disconnect();
-  $('#Before_connect_control *').hide();
+  $('#Control_View *').hide();
   $('#clientConnectButton').html("Connect");
   $('#Status_Property').html(" Not Connected");
   document.getElementById("clientConnectButton").className = "buttonc button1";
@@ -413,7 +403,6 @@ function publish() {
   var qos = document.getElementById("publishQosInput").value;
   var message = document.getElementById("publishMessageInput").value;
   var retain = document.getElementById("publishRetainInput").checked;
-//  logMessage("INFO", "Publishing Message: [Topic: ", topic, ", Payload: ", message, ", QoS: ", qos, ", Retain: ", retain, "]");
   message = new Paho.Message(message);
   message.destinationName = topic;
   message.qos = Number(qos);
@@ -423,18 +412,16 @@ function publish() {
 
 
 function subscribe() {
-  
 //  var topic = document.getElementById("subscribeTopicInput").value;
 //  var qos = document.getElementById("subscribeQosInput").value;
 //  logMessage("INFO", "Subscribing to: [Topic: ", topic, ", QoS: ", qos, "]");
-var topic = "sri8352/feeds/srikanth.readback";
-var qos = "0";
+  var topic = "sri8352/feeds/srikanth.readback";
+  var qos = "0";
   client.subscribe(topic, { qos: Number(qos) });
 }
 
 function unsubscribe() {
-  var topic = document.getElementById("subscribeTopicInput").value;
-  logMessage("INFO", "Unsubscribing: [Topic: ", topic, "]");
+  var topic = 0;
   client.unsubscribe(topic, {
     onSuccess: unsubscribeSuccess,
     onFailure: unsubscribeFailure,

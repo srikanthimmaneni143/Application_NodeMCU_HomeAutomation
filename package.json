@@ -1,8 +1,8 @@
 {
   "name": "id.sri.immaneni",
-  "displayName": "immaneni",
+  "displayName": "Immaneni",
   "version": "1.0.0",
-  "description": "A sample Apache Cordova application that responds to the deviceready event.",
+  "description": " A sample application developed for the use of MQTT protocol over websockets.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
