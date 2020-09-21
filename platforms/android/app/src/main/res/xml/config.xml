@@ -4,12 +4,15 @@
         <param name="android-package" value="org.apache.cordova.whitelist.WhitelistPlugin" />
         <param name="onload" value="true" />
     </feature>
-    <name>immaneni</name>
+    <feature name="ChromeSocketsTcp">
+        <param name="android-package" value="org.chromium.ChromeSocketsTcp" />
+    </feature>
+    <name>Immaneni</name>
     <description>
-        A sample Apache Cordova application that responds to the deviceready event.
+        A sample application developed for the use of MQTT protocol over websockets.
     </description>
     <author email="dev@cordova.apache.org" href="http://cordova.io">
-        Apache Cordova Team
+        Srikanth Immaneni
     </author>
     <content src="index.html" />
     <access origin="*" />

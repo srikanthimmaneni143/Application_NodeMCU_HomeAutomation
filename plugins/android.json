@@ -9,7 +9,14 @@
   "installed_plugins": {
     "cordova-plugin-whitelist": {
       "PACKAGE_NAME": "id.sri.immaneni"
+    },
+    "cordova-plugin-chrome-apps-sockets-tcp": {
+      "PACKAGE_NAME": "id.sri.immaneni"
     }
   },
-  "dependent_plugins": {}
+  "dependent_plugins": {
+    "cordova-plugin-chrome-apps-common": {
+      "PACKAGE_NAME": "id.sri.immaneni"
+    }
+  }
 }

@@ -139,4 +139,36 @@
     /************** End of Row class*******************************/
     
 
+
+/* Create two unequal columns that floats next to each other */
+.column1 {
+  float: left;
+  padding: 1px;
+  height: 80px; /* Should be removed. Only for demonstration */
+}
+
+.left1 {
+  width: 50%;
+  text-align: center;
+  color: blueviolet;
+  border-style: ridge;
+}
+
+.right1 {
+  width: 50%;
+  text-align: center;
+  color: blueviolet;
+  border-style: ridge;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  border-style: ridge;
+  clear: both;
+}
+
+/*  color: blueviolet; */
+
   

@@ -6,9 +6,18 @@
 
 // Create a client instance
 var client = null;
-var connected = false;
+var MQTTState = false;
 var MCU_state = 0;
 var Initial_State = false;
+var Debug_Console = false;
+
+//TCP socket client
+var NodeMCU_ip = "192.168.43.15";
+var LoopBack_IP = "127.0.0.1";
+var NodeMCU_port = 55555;
+var SocketID = null;
+var TCPState = false;
+
 
 
 /////When document loaded completely it executes
@@ -16,6 +25,23 @@ $(document).ready(function() {
 
   $('#Connection_Properties').hide();
   $('#Control_View').hide();
+  $('#ONLINEStatus').html("Not Connected");
+  $('#OFFLINEStatus').html("Not Connected");
+
+  /*
+  $("#ONLINE_Click").click(function(){
+    if(!MQTTState){
+      connect();
+    }
+  }
+
+  $("#OFFLINE_Click").click(function(){
+    if(!TCPState){
+     TCPConnect();
+    }
+  }
+*/
+
 ////////// Data which is stored in the local we are retrieving        ////////////////
   var storage = window.localStorage;
 
@@ -56,20 +82,28 @@ if(storage.getItem('tlsInput').localeCompare("true")  == 0){
 })
 
 
-
 $("#Refresh_button").click(function(){
-
- if(connected == false)
+ if((MQTTState == false) && (TCPState == false))
   {
-   alert("CONNECT first and then try");
+   if(Debug_Console){
+    alert("CONNECT first and then try");
+   }
    return ;
   }
   MCU_state = MCU_state + 1;
-  if(MCU_state > 2){
-    alert("Controlling Device is not Connected to the Internet. \nPlease Connect it and try again!");
+  if(MCU_state > 5){
+    alert("Controlling Device is not Connected. \nPlease Connect it and try again!");
   }
-  publish_Own("?Are you connected?");
-  publish_Own("?Send me the status of all pins?");
+  if(TCPState == true){
+//    alert("In refresh");
+    TCPSenddata("ping?");
+    TCPSenddata("Status_Please?");
+  }
+  if(MQTTState == true){
+    publish_Own("ping?");
+    publish_Own("Status_Please?");
+  }
+
 });
 
 /////Send mesage when click on switch for LED
@@ -77,12 +111,14 @@ $("#switchled").on('change', function() {
   if ($(this).is(':checked')) {
       $(this).attr('value', 'true');
       //alert($(this).val());
+      TCPSenddata("LIGHT_ON:HOME");
       publish_Own("LIGHT_ON:HOME");
   }
   else {
      $(this).attr('value', 'false');
  //    alert($(this).val());
-     publish_Own("LIGHT_OFF:HOME");
+      TCPSenddata("LIGHT_OFF:HOME");
+      publish_Own("LIGHT_OFF:HOME");
     }
 });
 
@@ -91,12 +127,14 @@ $("#switchtv").on('change', function() {
   if ($(this).is(':checked')) {
       $(this).attr('value', 'true');
       //alert($(this).val());
+      TCPSenddata("TV_ON:HOME");
       publish_Own("TV_ON:HOME");
   }
   else {
      $(this).attr('value', 'false');
  //    alert($(this).val());
-     publish_Own("TV_OFF:HOME");
+      TCPSenddata("TV_OFF:HOME");
+      publish_Own("TV_OFF:HOME");
     }
 });
 
@@ -105,13 +143,15 @@ $("#switchnightled").on('change', function() {
   if ($(this).is(':checked')) {
       $(this).attr('value', 'true');
       //alert($(this).val());
+      TCPSenddata("NIGHTLIGHT_ON:HOME");
       publish_Own("NIGHTLIGHT_ON:HOME");
-  }
+    }
   else {
      $(this).attr('value', 'false');
  //    alert($(this).val());
-     publish_Own("NIGHTLIGHT_OFF:HOME");
-    }
+     TCPSenddata("NIGHTLIGHT_OFF:HOME");
+      publish_Own("NIGHTLIGHT_OFF:HOME");
+     }
 });
 
 /////Send mesage when click on switch for FAN
@@ -119,38 +159,54 @@ $("#switchfan").on('change', function() {
   if ($(this).is(':checked')) {
       $(this).attr('value', 'true');
       //alert($(this).val());
+      TCPSenddata("FAN_ON:HOME");
       publish_Own("FAN_ON:HOME");
   }
   else {
      $(this).attr('value', 'false');
  //    alert($(this).val());
+     TCPSenddata("FAN_OFF:HOME");
      publish_Own("FAN_OFF:HOME");
     }
 });
 
 function CONNECT(){
-  if(connected){
+  if(TCPState){
+    TCPDisconnect();
+    $('#Control_View').hide();
+    if(!MQTTState){
+      return;
+    }
+  }
+  if(MQTTState){
     disconnect();
+    $('#Control_View').hide();
+    return;
   }
   else{
     connect();
+    TCPConnect();
   }
 }
 
 /////////////////////////////////////////////////////////////
 function configuration_mqtt(){
-//  alert("Called Configured");
+  if(Debug_Console){
+    alert("Called Configured");
+  }
   var x = document.getElementById("Connection_Properties");
   var storage = window.localStorage;
 
   if (x.style.display === "none") {
     $('#ConnectView').hide();
     $('#Setting_button').html(" Save");
-
+    $('#Control_View').hide();
     x.style.display = "block";
   } else {
     x.style.display = "none";
     $('#ConnectView').show();
+    if(TCPState || MQTTState){
+    $('#Control_View').show();}
     $('#Setting_button').html(" Settings");
     storage.setItem('hostInput', document.getElementById('hostInput').value);
     storage.setItem('portInput', document.getElementById('portInput').value);
@@ -183,34 +239,37 @@ function configuration_mqtt(){
     storage.setItem('lwQosInput', document.getElementById('lwQosInput').value);
     storage.setItem('lwMInput', document.getElementById('lwMInput').value);
   }
-//  alert("Config");
-//  if(connected)
-//     disconnect();
-
 }
 //////////////////////////////////////////////////////////////
 // called when the client connects
 function onConnect(context) {
   // Once a connection has been made, make a subscription and send a message.
-  connected = true;
-//  alert("Successfully Connected to Broker");
+  MQTTState = true;
+  if(Debug_Console){
+  alert("Successfully Connected to Broker");}
   $('#clientConnectButton').html("Disconnect");
-  $('#Status_Property').html(" Connected");
-
   document.getElementById("clientConnectButton").className = "buttonc button2";
+  $('#ONLINEStatus').html("Connected");
+
   subscribe();
-  publish_Own("?Are you connected?");
-  publish_Own("?Send me the status of all pins?");
+  publish_Own("ping?");
+  publish_Own("Status_Please?");
+  MCU_state = 0;
+//  $('#Control_View').show();
+
 }
 
 //////////////////////////////////////////////////////////////
 function onConnected(reconnect, uri) {
   // Once a connection has been made, make a subscription and send a message.
-  connected = true;
+  MQTTState = true;
 
 }
 /////////////////////////////////////////////////////////////
 function publish_Own(mess) {
+  if(MQTTState == false){
+    return;
+  }
   var topic = "sri8352/feeds/srikanth.home";
   var qos = "0";
   var message = mess;
@@ -225,81 +284,82 @@ function publish_Own(mess) {
 
 //////////////////////////////////////////////////////////////
 function onFail(context) {
-  connected = false;
-  $('#Status_Property').html(" Not Connected");
-//  alert("Failed to connect,Check Connection SETTINGS and Connect again!.\n ERROR: ".concat(context.errorMessage));
+  MQTTState = false;
+  $('#ONLINEStatus').html("Not Connected");
+  $('#Control_View').hide();
+  if(Debug_Console){
+    alert("Failed to connect,Check Connection SETTINGS and Connect again!.\n ERROR: ".concat(context.errorMessage));}
 }
 
 // called when the client loses its connection
 function onConnectionLost(responseObject) {
-  connected = false;
-//  alert("Connection Lost with error: ",responseObject.errorMessage);
+  MQTTState = false;
+  if(Debug_Console){
+    alert("Connection Lost with error: ".concat(responseObject.errorMessage));}
+  $('#clientConnectButton').html("Connect");
   document.getElementById("clientConnectButton").className = "buttonc button1";
-  $('#Status_Property').html(" Not Connected");
-
+  $('#ONLINEStatus').html("Not Connected");
+  $('#Control_View').hide();
 }
 
-// called when a message arrives
-function onMessageArrived(message) {
- // var messageTime = new Date().toISOString();
- /////////If device is connected it sends the request to send pins status////////////// 
-  if(message.payloadString.match("Yes, Iam") ){
+
+function ApplicationWork(WorkData){
+  if(WorkData.match("OK") ){
     MCU_state = 0;
-//    publish_Own("?Send me the status of all pins?");
   }
 
  //Refresh the pins status 
-  if(message.payloadString.match(":Node pins status:")){
-    if(message.payloadString.match(":LIGHT_OFF:")){
+  if(WorkData.match("Status_Back")){
+    if(WorkData.match(":LIGHT_OFF:")){
       //Light to OFF toggle
       if($("#switchled").is(':checked') == true) {
         $("#switchled").attr('value', 'false'); //set value false
         $("#switchled").prop('checked', false); // Unchecks it
       }
     }
-    if(message.payloadString.match(":LIGHT_ON:")){
+    if(WorkData.match(":LIGHT_ON:")){
       //Light to ON toggle
       if($("#switchled").is(':checked') == false) {
         $("#switchled").attr('value', 'true'); //set value true
         $("#switchled").prop('checked', true); // Checks it
       }
     }
-    if(message.payloadString.match(":TV_OFF:")){
+    if(WorkData.match(":TV_OFF:")){
       //TV to OFF toggle
       if($("#switchtv").is(':checked') == true) {
         $("#switchtv").attr('value', 'false'); //set value false
         $("#switchtv").prop('checked', false); // Unchecks it
       }
     }
-    if(message.payloadString.match(":TV_ON:")){
+    if(WorkData.match(":TV_ON:")){
       //TV to ON toggle
       if($("#switchtv").is(':checked') == false) {
         $("#switchtv").attr('value', 'true'); //set value true
         $("#switchtv").prop('checked', true); // Checks it
       }
     }
-    if(message.payloadString.match(":FAN_OFF:")){
+    if(WorkData.match(":FAN_OFF:")){
       //FAN to OFF toggle
       if($("#switchfan").is(':checked') == true) {
             $("#switchfan").attr('value', 'false'); //set value false
             $("#switchfan").prop('checked', false); // Unchecks it
         }
     }
-    if(message.payloadString.match(":FAN_ON :")){
+    if(WorkData.match(":FAN_ON:")){
       //FAN to ON toggle
       if($("#switchfan").is(':checked') == false) {
         $("#switchfan").attr('value', 'true'); //set value true
         $("#switchfan").prop('checked', true); // Checks it
       }
     }
-    if(message.payloadString.match(":NIGHTLIGHT_OFF:")){
+    if(WorkData.match(":NIGHTLIGHT_OFF:")){
       //Night Light to OFF toggle
       if($("#switchnightled").is(':checked') == true) {
         $("#switchnightled").attr('value', 'false'); //set value false
         $("#switchnightled").prop('checked', false); // Unchecks it
       }
     }   
-    if(message.payloadString.match(":NIGHTLIGHT_ON:")){
+    if(WorkData.match(":NIGHTLIGHT_ON:")){
       //Night Light to ON toggle
       if($("#switchnightled").is(':checked') == false) {
         $("#switchnightled").attr('value', 'true'); //set value true
@@ -309,10 +369,14 @@ function onMessageArrived(message) {
 
     ///Buttons to show
     $('#Control_View').show();
-//    $('#Control_View *').show();
-
-
   }//Refresh pins if end
+}
+
+// called when a message arrives
+function onMessageArrived(message) {
+ // var messageTime = new Date().toISOString();
+ /////////   If device is connected it sends the request to send pins status    ////////////// 
+ ApplicationWork(message.payloadString);
 /*    message.destinationName;
     message.destinationName;
     var res = message.payloadString.match(/ReadBack/)
@@ -321,7 +385,6 @@ function onMessageArrived(message) {
     message.qos;
 */
 }// Function end
-
 
 function connect() {
   var hostname = document.getElementById("hostInput").value;
@@ -380,23 +443,23 @@ function connect() {
 //    lastWillMessage.retained = lastWillRetain;
     options.willMessage = lastWillMessage;
   }
-//  alert("Called connect"); 
+  if(Debug_Console){
+    alert("Called connect"); }
   // connect the client
   client.connect(options);
-  $('#Status_Property').html(" Connecting...");
+  $('#ONLINEStatus').html("Connecting...");
 }
 
 function disconnect() {
-//  alert("Disconnect");
+  if(Debug_Console){
+    alert("Disconnect");}
   client.disconnect();
-  $('#Control_View *').hide();
+  $('#Control_View').hide();
   $('#clientConnectButton').html("Connect");
-  $('#Status_Property').html(" Not Connected");
   document.getElementById("clientConnectButton").className = "buttonc button1";
-
-  connected = false;
+  $('#ONLINEStatus').html("Not Connected");
+  MQTTState = false;
 }
-
 
 function publish() {
   var topic = document.getElementById("publishTopicInput").value;
@@ -409,7 +472,6 @@ function publish() {
   message.retained = retain;
   client.send(message);
 }
-
 
 function subscribe() {
 //  var topic = document.getElementById("subscribeTopicInput").value;
@@ -429,21 +491,169 @@ function unsubscribe() {
   });
 }
 
-
 function unsubscribeSuccess(context) {
 //  logMessage("INFO", "Unsubscribed. [Topic: ", context.invocationContext.topic, "]");
 }
 
 function unsubscribeFailure(context) {
 //  logMessage("ERROR", "Failed to unsubscribe. [Topic: ", context.invocationContext.topic, ", Error: ", context.errorMessage, "]");
-alert("Unsubscribe failure: ")
+if(Debug_Console){
+  alert("Unsubscribe failure: ")}
 }
 
+////////////////// ON Connect Callback //////////////////////
+function TCPconnectedCallback(result) {
+  if(Debug_Console){
+//    alert("In Connected function");
+  }
+
+      if (result == 0) {
+        if(Debug_Console){
+          alert('Socket Connected to ' + NodeMCU_ip);}                        
+           console.log('Connected to ' + NodeMCU_ip);
+           $('#clientConnectButton').html("Disconnect");
+           document.getElementById("clientConnectButton").className = "buttonc button2";
+           $('#OFFLINEStatus').html("Connected");
+           $('#Control_View').show();
+           TCPState =  true;   
+           MCU_state  = 0;  
+           //Generating click event
+           $( "#Refresh_button" ).trigger( "click" );
+      }
+      else {
+          var errorMessage = 'Failed to connect to ' + NodeMCU_ip;
+          if(Debug_Console){
+            alert('Failed to connect to local TCP server' + NodeMCU_ip);}
+          console.log(errorMessage);
+          $('#clientConnectButton').html("Connect");
+          document.getElementById("clientConnectButton").className = "buttonc button1";
+          $('#OFFLINEStatus').html("Not Connected");
+          $('#Control_View').hide();
+          TCPState  =   false;
+  //        navigator.notification.alert(errorMessage, function() {})
+      }
+  }
+  
+ function TCPConnect(){
+  NodeMCU_ip   = document.getElementById("IPInput").value;
+  NodeMCU_port = Number(document.getElementById("PORTInput").value);
+  if(Debug_Console){
+    alert("In TCP Connect function");
+  }
+  chrome.sockets.tcp.create(function(createInfo) {
+    SocketID = createInfo.socketId;
+    chrome.sockets.tcp.setPaused(SocketID, false);
+    if(Debug_Console){
+      alert("Socket created");
+    }
+    chrome.sockets.tcp.onReceive.addListener(function(info){
+      if(Debug_Console){
+        alert("In data receive function");}
+     if (info.data){
+         ApplicationWork(ab2str(info.data));
+         if(Debug_Console){
+          alert("In data receive "+ab2str(info.data));}
+     }
+});
+    chrome.sockets.tcp.connect(
+        SocketID,
+        NodeMCU_ip,
+        NodeMCU_port,
+        TCPconnectedCallback)
+    })       
+} 
+
+
+///////////////////////////////////////////////////////////////////
+function TCPSenddata(TCPMessage){
+if(Debug_Console){
+  alert("In sendata function");
+}
+      var arrayBuffer = rawStringToBuffer(TCPMessage);
+
+      if(TCPState) {
+        chrome.sockets.tcp.send (
+          SocketID,
+          arrayBuffer,
+          function(sendInfo) {
+            if(Debug_Console){
+              alert("Senddata func inn");
+            }
+              if (sendInfo.resultCode < 0) {
+                  var errorMessage = 'Failed to send data';
+                  console.log(errorMessage);
+                  alert(errorMessage);
+              }
+              else{
+                if(Debug_Console){
+                  alert("Data sent successfully : "+ sendInfo.bytesSent);
+                }
+              }
+          }	
+        )
+      }
+}
+
+
+///////////////// Disconnect   /////////////////////
+function TCPDisconnect() {
+  if(Debug_Console){
+    alert("IN Disconnect function");
+  }
+    chrome.sockets.tcp.disconnect(SocketID, function(){
+      if(Debug_Console){
+        alert("Disconnected success");
+      }
+      TCPState  =   false;
+      $('#clientConnectButton').html("Connect");
+      document.getElementById("clientConnectButton").className = "buttonc button1";
+      $('#OFFLINEStatus').html("Not Connected");
+      $('#Control_View').hide();
+
+    })
+    chrome.sockets.tcp.close(SocketID, function() {
+          console.log('TCP Socket close finished.');
+          TCPState  =   false;
+          $('#clientConnectButton').html("Connect");
+          document.getElementById("clientConnectButton").className = "buttonc button1";
+          $('#OFFLINEStatus').html("Not Connected");
+          $('#Control_View').hide();
+          if(Debug_Console){
+            alert("Socket Closed");
+          }
+    })
+}
+///////////////// On data receive data /////////////////
+function TCPOnReceive(info){
+  if(Debug_Console){
+    alert("In data receive function");
+  }
+     if (info.data){
+         ApplicationWork(bufferToString(info.data));
+         if(Debug_Console){
+           alert(bufferToString(info.data));
+         }
+     }
+}
 
 // Just in case someone sends html
 function safeTagsRegex(str) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").
     replace(/>/g, "&gt;");
+}
+
+//Helper functions
+function rawStringToBuffer( str ) {
+  var idx, len = str.length, arr = new Array( len );
+  for ( idx = 0 ; idx < len ; ++idx ) {
+      arr[ idx ] = str.charCodeAt(idx) & 0xFF;
+  }
+  // You may create an ArrayBuffer from a standard array (of values) as follows:
+  return new Uint8Array( arr ).buffer;
+}
+
+function ab2str(buf) {
+  return String.fromCharCode.apply(null, new Uint8Array(buf));
 }
 
 //////Function to make id as anonymous 
